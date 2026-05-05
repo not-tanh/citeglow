@@ -4,6 +4,8 @@
 
 CiteGlow is a tiny Python library for highlighting the supporting passage inside a source document, given a grounded answer.
 
+Try CiteGlow in the live demo: [citeglow.streamlit.app](https://citeglow.streamlit.app).
+
 It is built for RAG systems that already retrieved the right source chunk and generated an answer from it. CiteGlow does **not** call an LLM, create embeddings, run a reranker, or make network requests. It uses deterministic token overlap: LCS phrase anchors plus nearby bag-of-words matches.
 
 ## Why use it?
@@ -121,22 +123,6 @@ CiteGlow is deterministic, so tuning is about choosing how strict or generous th
 
 By default, CiteGlow expands surviving matches to the containing line. This is usually better for citation UI because users see the full supporting sentence or bullet.
 
-```python
-from citeglow import find_answer_highlights
-
-source = "Unused items can be returned within 30 days of delivery for a refund."
-answer = "The refund window is 30 days for unused items."
-
-display_spans = find_answer_highlights(answer, source)
-tight_spans = find_answer_highlights(answer, source, expand_spans=False)
-
-print([source[start:end] for start, end in display_spans])
-# ["Unused items can be returned within 30 days of delivery for a refund."]
-
-print([source[start:end] for start, end in tight_spans])
-# ["Unused items can be returned within 30 days of delivery for a refund"]
-```
-
 Use `expand_spans=False` when you need exact lexical evidence offsets for storage, scoring, or tests. Use the default expansion for user-facing source previews.
 
 ### Custom Expansion Regex
@@ -173,7 +159,7 @@ The regex is applied with Python's `re` engine. CiteGlow expands a span to the r
 
 ### Stop Words
 
-Stop words are removed only from "is this meaningful evidence?" and bag-of-words expansion decisions. They do not remove text from the returned source offsets.
+CiteGlow ignores stop words when deciding whether a candidate highlight contains enough useful text and when expanding matches from shared terms. It does not remove text from the returned source offsets.
 
 Use the default English and Vietnamese list:
 
@@ -215,40 +201,11 @@ spans = find_answer_highlights(
 
 `char` uses each non-whitespace character as a token and still returns Python character offsets into the original source.
 
-### Practical Presets
+### English Lemmatization Before Matching
 
-For strict citation previews:
+CiteGlow uses exact lexical matching, including exact bag-of-words matching. For English, matching can improve when you lemmatize the answer and source first, so related forms like "policies" and "policy" or "required" and "require" line up.
 
-```python
-strict_options = HighlightOptions(
-    neighborhood_tokens=3,
-    min_span_words=2,
-    min_vocab_token_chars=3,
-    expand_spans=True,
-)
-```
-
-For technical support logs with short identifiers:
-
-```python
-log_options = HighlightOptions(
-    neighborhood_tokens=8,
-    min_span_words=1,
-    min_vocab_token_chars=1,
-    stop_words=DEFAULT_STOP_WORDS | {"error", "warning", "info"},
-    expand_spans=True,
-    span_expansion_regex=r"[^\r\n]+",
-)
-```
-
-For storing exact evidence spans before rendering:
-
-```python
-exact_options = HighlightOptions(
-    expand_spans=False,
-    min_span_words=1,
-)
-```
+CiteGlow intentionally does not include a lemmatizer or any NLP dependency. If your application already uses one, run it before calling CiteGlow if you want to improve the performance.
 
 ## Best Fit
 
@@ -264,36 +221,11 @@ It is intentionally conservative. If an answer is mostly paraphrased or unsuppor
 ## Limitations
 
 - It is lexical, not semantic. Synonyms and heavy paraphrases may not match.
+- Bag-of-words expansion is exact token matching. For English, lemmatize before calling CiteGlow when inflected forms matter.
 - It does not decide whether an answer is correct.
 - It does not retrieve documents.
 - Offsets are Python string character offsets, not byte offsets.
 - The built-in stop-word list is intentionally small and currently focused on English and Vietnamese. Tune it for your domain and language mix.
-
-## Rendering Highlights
-
-For HTML, escape the source text before inserting tags:
-
-```python
-from html import escape
-
-
-def render_highlights(text: str, spans: list[tuple[int, int]]) -> str:
-    parts: list[str] = []
-    cursor = 0
-    for start, end in spans:
-        parts.append(escape(text[cursor:start]))
-        parts.append(f"<mark>{escape(text[start:end])}</mark>")
-        cursor = end
-    parts.append(escape(text[cursor:]))
-    return "".join(parts)
-```
-
-## Development
-
-```bash
-python -m pip install -e ".[dev]"
-python -m pytest
-```
 
 ## License
 

@@ -20,6 +20,8 @@ from citeglow import (
 )
 
 
+GITHUB_REPO_URL = "https://github.com/not-tanh/citeglow"
+
 SAMPLES = {
     "Refund policy": {
         "answer": "The refund window is 30 days for unused items.",
@@ -60,6 +62,7 @@ def main() -> None:
     st.set_page_config(page_title="CiteGlow demo", layout="wide")
     st.title("CiteGlow citation highlighter")
     st.caption("Tune deterministic citation spans and inspect the returned offsets.")
+    st.markdown(f"[GitHub repository]({GITHUB_REPO_URL})")
 
     sample_name = st.sidebar.selectbox("Example", tuple(SAMPLES))
     sample = SAMPLES[sample_name]

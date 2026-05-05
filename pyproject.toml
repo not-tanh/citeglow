@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.9"
 license = { file = "LICENSE" }
 authors = [
-  { name = "CiteGlow contributors" }
+  { name = "Ted", email = "ted.nguyen95@gmail.com" }
 ]
 keywords = [
   "rag",
