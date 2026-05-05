@@ -39,6 +39,7 @@ from .highlighter_common import (
     MERGE_GAP_TOKENS,
     MIN_RUN_TOKENS,
     MIN_SINGLE_TOKEN_CHARS,
+    TokenizerMode,
     enforce_max_highlight_ratio,
     merge_close_runs,
     normalize_stop_words,
@@ -83,6 +84,7 @@ class HighlightOptions:
     lcs_min_run_tokens: int = MIN_RUN_TOKENS
     lcs_min_single_token_chars: int = MIN_SINGLE_TOKEN_CHARS
     max_highlight_ratio: float = MAX_HIGHLIGHT_RATIO
+    tokenizer: TokenizerMode = "unicode_word"
     expand_spans: bool = True
     span_expansion_regex: SpanExpansionRegex = DEFAULT_SPAN_EXPANSION_REGEX
 
@@ -97,6 +99,7 @@ def find_answer_highlights(
     min_span_words: Optional[int] = None,
     min_vocab_token_chars: Optional[int] = None,
     stop_words: Optional[Iterable[str]] = None,
+    tokenizer: Optional[TokenizerMode] = None,
     expand_spans: Optional[bool] = None,
     span_expansion_regex: Optional[SpanExpansionRegex] = None,
 ) -> list[tuple[int, int]]:
@@ -117,8 +120,8 @@ def find_answer_highlights(
     Pass ``HighlightOptions`` for reusable tuning, or use the direct
     keyword overrides for common per-call changes:
     ``neighborhood_tokens``, ``min_span_words``,
-    ``min_vocab_token_chars``, ``stop_words``, ``expand_spans``, and
-    ``span_expansion_regex``.
+    ``min_vocab_token_chars``, ``stop_words``, ``tokenizer``,
+    ``expand_spans``, and ``span_expansion_regex``.
     """
 
     if not answer or not chunk_text:
@@ -130,6 +133,7 @@ def find_answer_highlights(
         min_span_words=min_span_words,
         min_vocab_token_chars=min_vocab_token_chars,
         stop_words=stop_words,
+        tokenizer=tokenizer,
         expand_spans=expand_spans,
         span_expansion_regex=span_expansion_regex,
     )
@@ -142,11 +146,12 @@ def find_answer_highlights(
         min_run_tokens=resolved.lcs_min_run_tokens,
         min_single_token_chars=resolved.lcs_min_single_token_chars,
         max_highlight_ratio=resolved.max_highlight_ratio,
+        tokenizer=resolved.tokenizer,
     )
     if not lcs_char_spans:
         return []
 
-    chunk_tokens, chunk_token_spans = tokenize(chunk_text)
+    chunk_tokens, chunk_token_spans = tokenize(chunk_text, resolved.tokenizer)
     if not chunk_tokens:
         return []
 
@@ -163,6 +168,7 @@ def find_answer_highlights(
         answer,
         stop_words=resolved.stop_words,
         min_vocab_token_chars=resolved.min_vocab_token_chars,
+        tokenizer=resolved.tokenizer,
     )
     raw_bow_runs = [
         (index, index + 1)
@@ -232,6 +238,7 @@ def _resolve_options(
     min_span_words: Optional[int],
     min_vocab_token_chars: Optional[int],
     stop_words: Optional[Iterable[str]],
+    tokenizer: Optional[TokenizerMode],
     expand_spans: Optional[bool],
     span_expansion_regex: Optional[SpanExpansionRegex],
 ) -> HighlightOptions:
@@ -259,6 +266,7 @@ def _resolve_options(
         lcs_min_run_tokens=base.lcs_min_run_tokens,
         lcs_min_single_token_chars=base.lcs_min_single_token_chars,
         max_highlight_ratio=base.max_highlight_ratio,
+        tokenizer=base.tokenizer if tokenizer is None else tokenizer,
         expand_spans=base.expand_spans if expand_spans is None else expand_spans,
         span_expansion_regex=(
             base.span_expansion_regex
@@ -287,6 +295,7 @@ def _validate_options(options: HighlightOptions) -> None:
         raise ValueError("lcs_min_single_token_chars must be >= 1")
     if options.max_highlight_ratio <= 0:
         raise ValueError("max_highlight_ratio must be > 0")
+    tokenize("", options.tokenizer)
     _compile_span_expansion_regex(options.span_expansion_regex)
 
 
@@ -295,10 +304,11 @@ def _build_bow_vocabulary(
     *,
     stop_words: Set[str],
     min_vocab_token_chars: int,
+    tokenizer: TokenizerMode,
 ) -> frozenset[str]:
     """Return the answer's content-word vocabulary for BoW matching."""
 
-    answer_tokens, _ = tokenize(answer)
+    answer_tokens, _ = tokenize(answer, tokenizer)
     return frozenset(
         token
         for token in answer_tokens

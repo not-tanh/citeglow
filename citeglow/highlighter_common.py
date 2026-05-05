@@ -2,7 +2,7 @@
 
 ``highlighter`` (LCS) and ``highlighter_lcs_neighbor`` (LCS + neighbor BoW
 — the production highlighter wired into ``answer_builder``) both need
-the same Unicode tokenizer, the same gap/sentence-break aware run
+the same configurable tokenizer, the same gap/sentence-break aware run
 merger, the same meaningful-run filter, and the same final
 ``MAX_HIGHLIGHT_RATIO`` safety valve. Putting them here keeps each
 algorithm-specific module focused on its own logic.
@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import Iterable, Set
+from typing import Literal
 
 # A small, curated stop-word set covering the languages this product
 # serves (Vietnamese and English). Spans whose only content is one of
@@ -48,6 +49,8 @@ MIN_SINGLE_TOKEN_CHARS = 5    # OR a single content token of at least this lengt
 MERGE_GAP_TOKENS = 2          # bridge runs separated by at most this many tokens
 MAX_HIGHLIGHT_RATIO = 0.5     # collapse to longest span when highlights dominate
 
+TokenizerMode = Literal["unicode_word", "char"]
+
 WORD_RE = re.compile(r"\w+", flags=re.UNICODE)
 
 # Punctuation we treat as a sentence break. Two consecutive newlines also
@@ -55,8 +58,22 @@ WORD_RE = re.compile(r"\w+", flags=re.UNICODE)
 SENTENCE_BREAK_RE = re.compile(r"[.!?…]|\n\s*\n")
 
 
-def tokenize(text: str) -> tuple[list[str], list[tuple[int, int]]]:
-    """Return lowercased word tokens and their original char spans for ``text``."""
+def tokenize(
+    text: str,
+    tokenizer: TokenizerMode = "unicode_word",
+) -> tuple[list[str], list[tuple[int, int]]]:
+    """Return lowercased tokens and their original char spans for ``text``."""
+
+    if tokenizer == "char":
+        tokens: list[str] = []
+        spans: list[tuple[int, int]] = []
+        for index, char in enumerate(text):
+            if not char.isspace():
+                tokens.append(char.lower())
+                spans.append((index, index + 1))
+        return tokens, spans
+    if tokenizer != "unicode_word":
+        raise ValueError("tokenizer must be 'unicode_word' or 'char'")
 
     tokens: list[str] = []
     spans: list[tuple[int, int]] = []

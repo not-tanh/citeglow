@@ -50,7 +50,7 @@ print(highlighted_text)
 
 ## API
 
-### `find_answer_highlights(answer, chunk_text, *, keep_longest_only=True, options=None, neighborhood_tokens=None, min_span_words=None, min_vocab_token_chars=None, stop_words=None, expand_spans=None, span_expansion_regex=None)`
+### `find_answer_highlights(answer, chunk_text, *, keep_longest_only=True, options=None, neighborhood_tokens=None, min_span_words=None, min_vocab_token_chars=None, stop_words=None, tokenizer=None, expand_spans=None, span_expansion_regex=None)`
 
 Recommended highlighter. It:
 
@@ -73,6 +73,7 @@ spans = find_answer_highlights(
     min_span_words=1,
     min_vocab_token_chars=1,
     stop_words={"the", "and", "of"},
+    tokenizer="char",
     expand_spans=False,
 )
 ```
@@ -87,6 +88,7 @@ options = HighlightOptions(
     min_span_words=1,
     min_vocab_token_chars=1,
     stop_words=DEFAULT_STOP_WORDS | {"custom", "domain", "terms"},
+    tokenizer="unicode_word",
     expand_spans=True,
     span_expansion_regex=r"[^\r\n]+",
 )
@@ -100,6 +102,7 @@ Common knobs:
 - `min_span_words`: minimum token length for final spans before span expansion. Use `1` for short identifiers, product names, error codes, or SKUs.
 - `min_vocab_token_chars`: minimum token length for answer words used in bag-of-words expansion. Use `1` only when short tokens are meaningful in your domain.
 - `stop_words`: words ignored as low-signal vocabulary. Passing this replaces the defaults for that call; extend `DEFAULT_STOP_WORDS` when you want to keep the built-in English and Vietnamese words.
+- `tokenizer`: tokenization mode. Use `"unicode_word"` for the current Unicode word-token behavior, or `"char"` to match each non-whitespace character for languages without spaces between words, such as Thai, Japanese, and Chinese.
 - `expand_spans`: whether to expand token-aligned matches to a larger display unit. Defaults to `True`.
 - `span_expansion_regex`: regex that defines expansion units when `expand_spans=True`. Defaults to one rendered line: `r"[^\r\n]+"`.
 
@@ -195,6 +198,22 @@ options = HighlightOptions(stop_words={"le", "la", "les", "de", "des"})
 ```
 
 If important terms are currently treated as stop words, remove them from your custom set. If noisy terms repeatedly cause broad highlights, add them.
+
+### Tokenizers
+
+The default `unicode_word` tokenizer keeps CiteGlow's original behavior: contiguous Unicode word characters become one token. That works well for English, Vietnamese, and other text where word boundaries are explicit enough for lexical overlap.
+
+Use `char` when matching languages that do not consistently separate words with spaces:
+
+```python
+spans = find_answer_highlights(
+    answer,
+    source,
+    tokenizer="char",
+)
+```
+
+`char` uses each non-whitespace character as a token and still returns Python character offsets into the original source.
 
 ### Practical Presets
 

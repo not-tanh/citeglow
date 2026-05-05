@@ -7,7 +7,7 @@ answer prompt or the structured payload.
 
 Algorithm:
 
-1. Tokenize both strings into Unicode word tokens.
+1. Tokenize both strings into the configured token stream.
 2. Run ``SequenceMatcher`` over the lowercased token streams and take its
    matching blocks (longest non-overlapping contiguous matches).
 3. Merge adjacent matches separated by ≤ ``MERGE_GAP_TOKENS`` tokens — but
@@ -31,6 +31,7 @@ from .highlighter_common import (
     MERGE_GAP_TOKENS,
     MIN_RUN_TOKENS,
     MIN_SINGLE_TOKEN_CHARS,
+    TokenizerMode,
     enforce_max_highlight_ratio,
     is_meaningful_run,
     merge_close_runs,
@@ -48,8 +49,9 @@ def find_answer_highlights(
     min_run_tokens: int = MIN_RUN_TOKENS,
     min_single_token_chars: int = MIN_SINGLE_TOKEN_CHARS,
     max_highlight_ratio: float = MAX_HIGHLIGHT_RATIO,
+    tokenizer: TokenizerMode = "unicode_word",
 ) -> list[tuple[int, int]]:
-    """Return char offsets in ``chunk_text`` whose words overlap with ``answer``.
+    """Return char offsets in ``chunk_text`` whose tokens overlap with ``answer``.
 
     Each returned span is a half-open ``(start, end)`` pair into
     ``chunk_text``. Spans are sorted by start position and never overlap.
@@ -59,8 +61,8 @@ def find_answer_highlights(
     if not answer or not chunk_text:
         return []
 
-    answer_tokens, _ = tokenize(answer)
-    chunk_tokens, chunk_spans = tokenize(chunk_text)
+    answer_tokens, _ = tokenize(answer, tokenizer)
+    chunk_tokens, chunk_spans = tokenize(chunk_text, tokenizer)
     if not answer_tokens or not chunk_tokens:
         return []
 

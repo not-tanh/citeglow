@@ -91,6 +91,26 @@ def test_min_vocab_token_chars_controls_short_bow_terms() -> None:
     assert [source[start:end] for start, end in tuned_spans] == [source]
 
 
+def test_char_tokenizer_matches_cjk_text_without_word_boundaries() -> None:
+    source = "配送時間は三日です。"
+    answer = "配送時間三日"
+
+    default_spans = find_answer_highlights(answer, source)
+    char_spans = find_answer_highlights(answer, source, tokenizer="char")
+
+    assert default_spans == []
+    assert [source[start:end] for start, end in char_spans] == [source]
+
+
+def test_char_tokenizer_can_expand_thai_matches() -> None:
+    source = "คืนเงินภายใน30วันหลังจัดส่ง"
+    answer = "คืนเงิน30วัน"
+
+    spans = find_answer_highlights(answer, source, tokenizer="char")
+
+    assert [source[start:end] for start, end in spans] == [source]
+
+
 def test_stop_words_are_configurable() -> None:
     source = "The plan applies."
     answer = "The"
@@ -110,6 +130,9 @@ def test_stop_words_are_configurable() -> None:
 def test_invalid_options_raise_value_error() -> None:
     with pytest.raises(ValueError, match="neighborhood_tokens"):
         find_answer_highlights("answer", "answer", neighborhood_tokens=-1)
+
+    with pytest.raises(ValueError, match="tokenizer"):
+        find_answer_highlights("answer", "answer", tokenizer="byte")
 
 
 def test_span_expansion_can_be_disabled() -> None:

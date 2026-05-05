@@ -42,10 +42,16 @@ SAMPLES = {
             ]
         ),
     },
-    "Tagged citation block": {
-        "answer": "Alpha beta evidence is the cited claim.",
-        "source": "prefix <cite>alpha beta evidence</cite> suffix",
-        "span_expansion_regex": r"<cite>.*?</cite>",
+    "Japanese return policy": {
+        "answer": "未使用の商品は到着後14日以内なら返品できます。",
+        "source": "\n".join(
+            [
+                "送料は注文内容によって異なります。",
+                "未使用の商品は到着後14日以内であれば返品できます。",
+                "開封済みのソフトウェアは返金対象外です。",
+            ]
+        ),
+        "tokenizer": "char",
     },
 }
 
@@ -62,6 +68,11 @@ def main() -> None:
         st.header("Options")
         keep_longest_only = st.checkbox("Keep longest span only", value=True)
         expand_spans = st.checkbox("Expand spans for display", value=True)
+        tokenizer = st.selectbox(
+            "Tokenizer",
+            ("unicode_word", "char"),
+            index=1 if sample.get("tokenizer") == "char" else 0,
+        )
         neighborhood_tokens = st.slider("Neighbor tokens", 0, 20, 6)
         min_span_words = st.slider("Minimum span words", 1, 8, 2)
         min_vocab_token_chars = st.slider("Minimum vocabulary token chars", 1, 8, 2)
@@ -95,6 +106,7 @@ def main() -> None:
             min_span_words=min_span_words,
             min_vocab_token_chars=min_vocab_token_chars,
             stop_words=stop_words,
+            tokenizer=tokenizer,
             expand_spans=expand_spans,
             span_expansion_regex=span_expansion_regex,
         )
@@ -221,6 +233,7 @@ options = HighlightOptions(
     min_span_words={options.min_span_words},
     min_vocab_token_chars={options.min_vocab_token_chars},
 {stop_words_line}    expand_spans={options.expand_spans},
+    tokenizer={options.tokenizer!r},
     span_expansion_regex={options.span_expansion_regex!r},
 )
 
