@@ -1,0 +1,50 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "citeglow"
+version = "0.1.1"
+description = "Lightweight source-document highlighting for grounded RAG answers."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { file = "LICENSE" }
+authors = [
+  { name = "CiteGlow contributors" }
+]
+keywords = [
+  "rag",
+  "citations",
+  "highlighting",
+  "source-attribution",
+  "lcs",
+  "retrieval-augmented-generation",
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Text Processing",
+  "Topic :: Scientific/Engineering :: Information Analysis",
+]
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=7",
+]
+
+[project.urls]
+Homepage = "https://github.com/not-tanh/citeglow"
+Issues = "https://github.com/not-tanh/citeglow/issues"
+Source = "https://github.com/not-tanh/citeglow"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
