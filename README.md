@@ -11,6 +11,7 @@ It is built for RAG systems that already retrieved the right source chunk and ge
 ## Why use it?
 
 - Highlight source text for citations, answer explanations, and audit views.
+- Debug RAG systems quickly by jumping near likely source evidence, even when the exact highlight is imperfect.
 - Keep citation UI fast and cheap after answer generation.
 - Avoid another model call when the answer is expected to be grounded in the retrieved source.
 - Return plain Python character offsets so you can render highlights in any UI.
@@ -189,7 +190,7 @@ If important terms are currently treated as stop words, remove them from your cu
 
 The default `unicode_word` tokenizer keeps CiteGlow's original behavior: contiguous Unicode word characters become one token. That works well for English, Vietnamese, and other text where word boundaries are explicit enough for lexical overlap.
 
-Use `char` when matching languages that do not consistently separate words with spaces:
+Use `char` when matching languages that do not consistently separate words with spaces (like Japanese, Chinese, Thai, etc.):
 
 ```python
 spans = find_answer_highlights(
@@ -201,9 +202,9 @@ spans = find_answer_highlights(
 
 `char` uses each non-whitespace character as a token and still returns Python character offsets into the original source.
 
-### English Lemmatization Before Matching
+### Lemmatization Before Matching
 
-CiteGlow uses exact lexical matching, including exact bag-of-words matching. For English, matching can improve when you lemmatize the answer and source first, so related forms like "policies" and "policy" or "required" and "require" line up.
+CiteGlow uses exact lexical matching, including exact bag-of-words matching. For languages like English or French, matching can improve when you lemmatize the answer and source first, so related forms like "policies" and "policy" or "required" and "require" line up.
 
 CiteGlow intentionally does not include a lemmatizer or any NLP dependency. If your application already uses one, run it before calling CiteGlow if you want to improve the performance.
 
@@ -226,6 +227,7 @@ It is intentionally conservative. If an answer is mostly paraphrased or unsuppor
 - It does not retrieve documents.
 - Offsets are Python string character offsets, not byte offsets.
 - The built-in stop-word list is intentionally small and currently focused on English and Vietnamese. Tune it for your domain and language mix.
+- For production tasks that need highly accurate citations, treat highlights as candidates to verify. Even a wrong highlight can still be useful for debugging because nearby text may contain the ground truth.
 
 ## License
 

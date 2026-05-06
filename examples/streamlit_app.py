@@ -99,8 +99,8 @@ def main() -> None:
             help="Comma-separated words. With Default, these extend the built-in list.",
         )
 
-    answer = st.text_area("Answer", value=sample["answer"], height=120)
-    source = st.text_area("Source chunk", value=sample["source"], height=220)
+    answer = st.text_area("Answer", value=sample["answer"], height=150)
+    source = st.text_area("Source chunk", value=sample["source"], height=360)
 
     stop_words = resolve_stop_words(stop_word_mode, custom_stop_words)
     try:
@@ -164,15 +164,12 @@ def resolve_stop_words(mode: str, raw_words: str) -> Iterable[str]:
 
 
 def render_source(source: str, spans: list[tuple[int, int]]) -> str:
+    """Return escaped source HTML with highlights applied to line fragments."""
+
     safe_spans = clamp_spans(spans, len(source))
-    parts: list[str] = []
-    cursor = 0
-    for start, end in safe_spans:
-        parts.append(html.escape(source[cursor:start]))
-        parts.append(f"<mark>{html.escape(source[start:end])}</mark>")
-        cursor = end
-    parts.append(html.escape(source[cursor:]))
-    body = "".join(parts) or "<span class='placeholder'>No source text.</span>"
+    body = render_highlighted_lines(source, safe_spans)
+    if not body:
+        body = "<span class='placeholder'>No source text.</span>"
     return f"""
 <style>
 .citeglow-source {{
@@ -182,9 +179,12 @@ def render_source(source: str, spans: list[tuple[int, int]]) -> str:
     color: #1f2328;
     line-height: 1.65;
     padding: 1rem;
-    white-space: pre-wrap;
     overflow-wrap: anywhere;
     min-height: 220px;
+}}
+.citeglow-source-line {{
+    min-height: 1.65em;
+    white-space: pre-wrap;
 }}
 .citeglow-source mark {{
     background: #fff0a8;
@@ -201,7 +201,52 @@ def render_source(source: str, spans: list[tuple[int, int]]) -> str:
 """
 
 
+def render_highlighted_lines(source: str, spans: list[tuple[int, int]]) -> str:
+    """Render source one line at a time while preserving global char offsets."""
+
+    parts: list[str] = []
+    line_start = 0
+    for raw_line in source.splitlines(keepends=True):
+        line_end = line_start + len(raw_line)
+        visible_end = line_end - len(raw_line) + len(raw_line.rstrip("\r\n"))
+        line_html = render_highlighted_line(
+            source,
+            line_start,
+            visible_end,
+            spans,
+        )
+        parts.append(f'<div class="citeglow-source-line">{line_html}</div>')
+        line_start = line_end
+    if line_start < len(source) or source.endswith(("\n", "\r")):
+        parts.append('<div class="citeglow-source-line"></div>')
+    return "".join(parts)
+
+
+def render_highlighted_line(
+    source: str,
+    line_start: int,
+    line_end: int,
+    spans: list[tuple[int, int]],
+) -> str:
+    """Render one visible source line with any intersecting span fragments marked."""
+
+    parts: list[str] = []
+    cursor = line_start
+    for span_start, span_end in spans:
+        start = max(span_start, line_start)
+        end = min(span_end, line_end)
+        if start >= end:
+            continue
+        parts.append(html.escape(source[cursor:start]))
+        parts.append(f"<mark>{html.escape(source[start:end])}</mark>")
+        cursor = end
+    parts.append(html.escape(source[cursor:line_end]))
+    return "".join(parts)
+
+
 def clamp_spans(spans: list[tuple[int, int]], source_length: int) -> list[tuple[int, int]]:
+    """Clamp spans to source bounds and drop empty or fully overlapped ranges."""
+
     normalized: list[tuple[int, int]] = []
     previous_end = 0
     for start, end in sorted(spans):

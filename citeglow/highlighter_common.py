@@ -107,13 +107,12 @@ def merge_close_runs(
             previous_start, previous_end = merged[-1]
             current_gap = start - previous_end
             if current_gap <= gap_tokens:
-                # When the gap is positive, check whether the chunk text
-                # between the two runs contains a sentence break; if so,
-                # do not merge across it. When the gap is zero or
-                # negative (adjacent or overlapping runs), there is no
-                # in-between text to inspect, so we merge unconditionally.
+                # Check the source characters between adjacent or gapped
+                # token runs; punctuation can sit between adjacent tokens
+                # even when their token-index gap is zero. Overlapping
+                # runs have no reliable in-between text, so they merge.
                 blocked_by_sentence = False
-                if current_gap > 0:
+                if current_gap >= 0:
                     gap_text = chunk_text[
                         chunk_spans[previous_end - 1][1]
                         : chunk_spans[start][0]
