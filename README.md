@@ -18,16 +18,8 @@ It is built for RAG systems that already retrieved the right source chunk and ge
 
 ## Install
 
-From a local checkout:
-
 ```bash
-python -m pip install -e .
-```
-
-After publishing to PyPI:
-
-```bash
-python -m pip install citeglow
+pip install citeglow
 ```
 
 ## Quick Start
